@@ -4,257 +4,229 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Finance Pro</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Finance Flow</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { 
-            --ios-bg: #ffffff; 
-            --ios-secondary: #f4f4f7;
-            --accent: #000000; 
-        }
-        body { 
-            background-color: var(--ios-bg); 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; 
-            -webkit-tap-highlight-color: transparent;
-            overflow: hidden;
-        }
+        :root { --app-bg: #f8f9fc; --primary: #4f46e5; --accent: #10b981; }
+        body { background: var(--app-bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
         .main-container { height: 100vh; display: flex; flex-direction: column; }
-        .content-area { flex: 1; overflow-y: auto; padding-bottom: 120px; }
-        .safe-top { padding-top: env(safe-area-inset-top); }
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        
-        .glass-nav {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: saturate(180%) blur(20px);
-            border-top: 0.5px solid rgba(0,0,0,0.1);
-        }
-
-        .input-group {
-            background: var(--ios-secondary);
-            border-radius: 16px;
-            padding: 12px 16px;
-            transition: all 0.2s ease;
-        }
-        .input-group:focus-within {
-            background: #ffffff;
-            box-shadow: 0 0 0 2px var(--accent);
-        }
-
-        .cat-chip {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .cat-chip.active {
-            background-color: var(--accent);
-            color: white;
-            transform: scale(1.05);
-        }
-
-        /* Animación de entrada */
-        .view-transition {
-            animation: fadeIn 0.3s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .content-area { flex: 1; overflow-y: auto; padding-bottom: 120px; scroll-behavior: smooth; }
+        .soft-card { background: white; border-radius: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); }
+        .tab-active { color: var(--primary); transform: translateY(-2px); }
+        .tab-active i { background: #eef2ff; padding: 10px; border-radius: 14px; }
+        .btn-grad { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+        .cat-chip { transition: all 0.3s ease; border: 1px solid #f1f5f9; }
+        .cat-chip.active { background: #4f46e5; color: white; border-color: #4f46e5; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .notification { transform: translateY(-100px); transition: transform 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .notification.show { transform: translateY(20px); }
     </style>
 </head>
-<body class="antialiased text-gray-900">
+<body class="antialiased text-slate-800">
+
+    <div id="toast" class="notification fixed top-0 left-0 right-0 flex justify-center z-[100] pointer-events-none">
+        <div class="bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 text-sm font-medium">
+            <div id="toastIcon" class="w-5 h-5 rounded-full flex items-center justify-center text-[10px]"></div>
+            <span id="toastMsg">Sincronizado</span>
+        </div>
+    </div>
 
     <div class="main-container">
-        <header class="safe-top px-6 pt-8 pb-4 flex justify-between items-end">
+        <header class="pt-14 px-8 pb-4 flex justify-between items-center bg-white/50 backdrop-blur-md">
             <div>
-                <h1 id="viewTitle" class="text-3xl font-black tracking-tight">Registro</h1>
-                <p class="text-gray-400 text-sm font-medium">Gastos Personales</p>
+                <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Gastos Personales</p>
+                <h1 class="text-2xl font-bold tracking-tight">Hola, <span id="uName">Martín</span></h1>
             </div>
-            <button onclick="addCategoryPrompt()" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 active:scale-90 transition-transform">
-                <i class="fas fa-plus text-sm"></i>
-            </button>
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 p-[2px]">
+                <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center font-bold text-indigo-600" id="uInit">M</div>
+            </div>
         </header>
 
-        <main class="content-area px-6">
-            
-            <div id="view-registro" class="view-transition space-y-6">
-                <form id="expenseForm" class="space-y-6">
-                    <div class="space-y-4">
-                        <div class="input-group">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Descripción</label>
-                            <input type="text" id="descripcion" placeholder="Ej. Almuerzo" required 
-                                class="w-full bg-transparent text-lg outline-none font-medium mt-1">
+        <main class="content-area px-6 pt-4">
+            <div id="v-reg" class="space-y-6">
+                <div class="soft-card p-6 space-y-6">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">¿En qué gastaste?</label>
+                        <input type="text" id="desc" placeholder="Ej. Alfajor o Café" class="w-full text-lg font-semibold outline-none bg-slate-50 p-4 rounded-2xl border-none focus:ring-2 focus:ring-indigo-100 transition-all">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Monto</label>
+                            <input type="number" id="mnt" placeholder="0.00" inputmode="decimal" class="w-full text-xl font-bold outline-none bg-slate-50 p-4 rounded-2xl border-none">
                         </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="input-group">
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Monto ($)</label>
-                                <input type="number" id="monto" placeholder="0.00" step="0.01" inputmode="decimal" required 
-                                    class="w-full bg-transparent text-lg outline-none font-bold mt-1">
-                            </div>
-                            <div class="input-group">
-                                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Método</label>
-                                <select id="metodo" class="w-full bg-transparent text-lg outline-none font-medium mt-1">
-                                    <option>Débito</option>
-                                    <option>Crédito</option>
-                                    <option>Efectivo</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="pt-2">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-3 ml-1">Categoría</label>
-                            <div class="flex gap-2 overflow-x-auto pb-4 scrollbar-hide" id="catContainer">
-                                </div>
-                            <input type="hidden" id="categoria">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Medio</label>
+                            <select id="met" class="w-full text-sm font-bold outline-none bg-slate-50 p-4 rounded-2xl border-none appearance-none text-indigo-600">
+                                <option>Débito</option><option>Efectivo</option><option>Crédito</option>
+                            </select>
                         </div>
                     </div>
 
-                    <button type="submit" id="btnEnviar" class="w-full bg-black text-white rounded-2xl py-5 font-bold text-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-                        <span>Registrar Gasto</span>
-                        <i class="fas fa-arrow-right text-sm opacity-50"></i>
-                    </button>
-                </form>
-            </div>
-
-            <div id="view-historial" class="hidden view-transition space-y-6">
-                <div id="historyList" class="space-y-4">
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1 block">Categoría</label>
+                        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="catList"></div>
                     </div>
+                </div>
+                <button onclick="save()" id="btnS" class="w-full btn-grad text-white py-5 rounded-[22px] font-bold text-lg shadow-lg shadow-indigo-200 active:scale-95 transition-all">
+                    Guardar Movimiento
+                </button>
             </div>
 
+            <div id="v-ana" class="hidden space-y-6">
+                <div class="soft-card p-8 bg-gradient-to-br from-white to-indigo-50/30">
+                    <p class="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Balance Mensual</p>
+                    <h2 id="tMes" class="text-center text-4xl font-black text-slate-900 mb-6">$ 0.00</h2>
+                    <div class="h-40 flex items-center justify-center">
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+                
+                <h3 class="font-bold text-slate-400 text-[10px] uppercase tracking-widest px-2">Historial Reciente</h3>
+                <div id="hList" class="space-y-3"></div>
+            </div>
         </main>
 
-        <div id="status" class="fixed top-12 left-0 right-0 flex justify-center px-6 pointer-events-none opacity-0 transition-all duration-500 z-50">
-            <span class="bg-black text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl flex items-center gap-3">
-                <i class="fas fa-check-circle text-green-400"></i>
-                Enviado a Google Sheets
-            </span>
-        </div>
-
-        <nav class="glass-nav fixed bottom-0 left-0 right-0 safe-bottom px-12 pt-4 pb-6 flex justify-between items-center z-40">
-            <button onclick="switchView('registro')" id="tab-registro" class="flex flex-col items-center gap-1 transition-all duration-300">
-                <i class="fas fa-plus-square text-2xl"></i>
-                <span class="text-[10px] font-black uppercase tracking-tighter">Nuevo</span>
+        <nav class="fixed bottom-6 left-6 right-6 h-20 soft-card flex justify-around items-center px-6 z-50 border border-slate-100">
+            <button onclick="tab('reg')" id="t-reg" class="tab-active flex flex-col items-center gap-1 transition-all duration-300">
+                <i class="fas fa-plus text-xl"></i>
+                <span class="text-[9px] font-bold uppercase">Nuevo</span>
             </button>
-            <button onclick="switchView('historial')" id="tab-historial" class="flex flex-col items-center gap-1 text-gray-300 transition-all duration-300">
-                <i class="fas fa-chart-bar text-2xl"></i>
-                <span class="text-[10px] font-black uppercase tracking-tighter">Historial</span>
+            <button onclick="tab('ana')" id="t-ana" class="text-slate-300 flex flex-col items-center gap-1 transition-all duration-300">
+                <i class="fas fa-chart-pie text-xl"></i>
+                <span class="text-[9px] font-bold uppercase">Análisis</span>
             </button>
         </nav>
     </div>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw7IdYO8RfpXmweuDZc3u3tL7LBLr0S6Nu3mZa2Tb-bZ_3Zpzs5OE-YdJTPdVG-gBP-5Q/exec";
+        const URL = "TU_URL_DE_APPS_SCRIPT_AQUI"; // REEMPLAZAR CON TU URL
         
-        // Base de datos local para persistencia rápida
-        let categories = JSON.parse(localStorage.getItem('fpro_cats')) || ['🏠 Hogar', '🛒 Súper', '🚗 Auto', '🍔 Ocio', '💻 Tech'];
-        let history = JSON.parse(localStorage.getItem('fpro_history')) || [];
+        let alias = localStorage.getItem('fe_alias') || prompt("Dime tu nombre:") || "Martín";
+        localStorage.setItem('fe_alias', alias);
+        
+        let cats = JSON.parse(localStorage.getItem('fe_cats')) || ['🏠 Hogar', '🛒 Súper', '🚗 Auto', '🍔 Ocio', '💻 Tech'];
+        let hist = JSON.parse(localStorage.getItem('fe_hist')) || [];
+        let selCat = cats[0];
+        let chart = null;
 
-        function renderCategories() {
-            const container = document.getElementById('catContainer');
-            container.innerHTML = categories.map(cat => `
-                <button type="button" onclick="selectCat('${cat}')" class="cat-chip px-5 py-3 rounded-2xl bg-gray-100 text-sm font-bold whitespace-nowrap">
-                    ${cat}
+        document.getElementById('uName').innerText = alias;
+        document.getElementById('uInit').innerText = alias[0].toUpperCase();
+
+        function renderCats() {
+            const div = document.getElementById('catList');
+            div.innerHTML = cats.map(c => `
+                <button onclick="sel('${c}')" class="cat-chip px-5 py-3 rounded-2xl text-xs font-bold whitespace-nowrap bg-white ${c===selCat?'active':''}">
+                    ${c}
                 </button>
-            `).join('');
-            if(!document.getElementById('categoria').value) selectCat(categories[0]);
+            `).join('') + `
+                <button onclick="addCat()" class="px-5 py-3 rounded-2xl text-xs font-bold bg-slate-100 text-slate-400 border border-dashed border-slate-300">
+                    <i class="fas fa-plus"></i>
+                </button>
+            `;
         }
 
-        function selectCat(cat) {
-            document.getElementById('categoria').value = cat;
-            document.querySelectorAll('.cat-chip').forEach(btn => {
-                const isSelected = btn.innerText.trim() === cat.trim();
-                btn.className = isSelected ? 'cat-chip active px-5 py-3 rounded-2xl text-sm font-bold whitespace-nowrap shadow-md' : 'cat-chip px-5 py-3 rounded-2xl bg-gray-100 text-sm font-bold whitespace-nowrap';
+        function sel(c) { selCat = c; renderCats(); }
+
+        function showToast(msg, success = true) {
+            const t = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            document.getElementById('toastMsg').innerText = msg;
+            icon.className = success ? "w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-green-500" : "w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-red-500";
+            icon.innerHTML = success ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>';
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function tab(v) {
+            document.getElementById('v-reg').classList.toggle('hidden', v !== 'reg');
+            document.getElementById('v-ana').classList.toggle('hidden', v !== 'ana');
+            document.getElementById('t-reg').className = v === 'reg' ? 'tab-active flex flex-col items-center gap-1 transition-all' : 'text-slate-300 flex flex-col items-center gap-1 transition-all';
+            document.getElementById('t-ana').className = v === 'ana' ? 'tab-active flex flex-col items-center gap-1 transition-all' : 'text-slate-300 flex flex-col items-center gap-1 transition-all';
+            if(v==='ana') updateAna();
+        }
+
+        async function save() {
+            const d = document.getElementById('desc').value;
+            const m = document.getElementById('mnt').value;
+            if(!d || !m) return showToast("Faltan datos", false);
+
+            const btn = document.getElementById('btnS');
+            btn.disabled = true; btn.innerText = "Sincronizando...";
+
+            const obj = { descripcion: d, monto: m, metodo: document.getElementById('met').value, categoria: selCat, action: "insert" };
+
+            try {
+                const response = await fetch(URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(obj) });
+                obj.id = new Date().getTime().toString();
+                obj.fecha = new Date().toLocaleDateString('es-UY', {day:'2-digit', month:'short'});
+                hist.push(obj);
+                localStorage.setItem('fe_hist', JSON.stringify(hist));
+                document.getElementById('desc').value = ''; document.getElementById('mnt').value = '';
+                showToast("Gasto guardado");
+            } catch(e) { showToast("Error de red", false); }
+            finally { btn.disabled = false; btn.innerText = "Guardar Movimiento"; }
+        }
+
+        function updateAna() {
+            const total = hist.reduce((a, b) => a + Number(b.monto), 0);
+            document.getElementById('tMes').innerText = `$ ${total.toLocaleString('es-UY', {minimumFractionDigits: 2})}`;
+            
+            const dataMap = {};
+            hist.forEach(i => dataMap[i.categoria] = (dataMap[i.categoria] || 0) + Number(i.monto));
+            
+            if(chart) chart.destroy();
+            const ctx = document.getElementById('myChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(dataMap),
+                    datasets: [{
+                        data: Object.values(dataMap),
+                        backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                        borderWidth: 0, weight: 0.5
+                    }]
+                },
+                options: { plugins: { legend: { display: false } }, cutout: '75%', responsive: true }
             });
-        }
 
-        function switchView(view) {
-            document.getElementById('view-registro').classList.toggle('hidden', view !== 'registro');
-            document.getElementById('view-historial').classList.toggle('hidden', view !== 'historial');
-            
-            // Estilos de Tabs
-            const activeClass = 'text-black scale-110';
-            const inactiveClass = 'text-gray-300';
-            
-            document.getElementById('tab-registro').className = view === 'registro' ? `flex flex-col items-center gap-1 ${activeClass}` : `flex flex-col items-center gap-1 ${inactiveClass}`;
-            document.getElementById('tab-historial').className = view === 'historial' ? `flex flex-col items-center gap-1 ${activeClass}` : `flex flex-col items-center gap-1 ${inactiveClass}`;
-            
-            document.getElementById('viewTitle').innerText = view === 'registro' ? 'Registro' : 'Historial';
-            if(view === 'historial') renderHistory();
-        }
-
-        function renderHistory() {
-            const list = document.getElementById('historyList');
-            if(history.length === 0) {
-                list.innerHTML = `<div class="flex flex-col items-center justify-center py-20 opacity-20"><i class="fas fa-folder-open text-5xl mb-4"></i><p class="font-bold">Sin registros aún</p></div>`;
-                return;
-            }
-            list.innerHTML = history.map(item => `
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            const list = document.getElementById('hList');
+            list.innerHTML = hist.map((i, idx) => `
+                <div class="soft-card p-4 flex justify-between items-center transition-all active:scale-[0.98]">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-xl">
-                            ${item.categoria.split(' ')[0]}
-                        </div>
+                        <div class="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-lg">${i.categoria.split(' ')[0]}</div>
                         <div>
-                            <p class="font-bold text-gray-900 leading-tight">${item.descripcion}</p>
-                            <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-0.5">${item.metodo} • ${item.fecha}</p>
+                            <p class="font-bold text-sm text-slate-700">${i.descripcion}</p>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">${i.metodo} • ${i.fecha}</p>
                         </div>
                     </div>
-                    <p class="font-black text-lg">-$${item.monto}</p>
+                    <div class="flex items-center gap-4">
+                        <p class="font-black text-sm text-slate-800">$${i.monto}</p>
+                        <button onclick="del(${idx}, '${i.id}')" class="w-8 h-8 flex items-center justify-center text-rose-200 hover:text-rose-500 transition-colors">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    </div>
                 </div>
             `).reverse().join('');
         }
 
-        function addCategoryPrompt() {
-            const newCat = prompt("Nueva categoría (Emoji + Nombre):", "🏷️ Nueva");
-            if (newCat) {
-                categories.push(newCat);
-                localStorage.setItem('fpro_cats', JSON.stringify(categories));
-                renderCategories();
-            }
+        async function del(idx, id) {
+            if(!confirm("¿Eliminar este gasto?")) return;
+            hist.splice(idx, 1);
+            localStorage.setItem('fe_hist', JSON.stringify(hist));
+            updateAna();
+            showToast("Gasto eliminado");
+            fetch(URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", id: id }) });
         }
 
-        document.getElementById('expenseForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btnEnviar');
-            
-            const expense = {
-                descripcion: document.getElementById('descripcion').value,
-                monto: document.getElementById('monto').value,
-                metodo: document.getElementById('metodo').value,
-                categoria: document.getElementById('categoria').value,
-                fecha: new Date().toLocaleDateString('es-UY', { day: '2-digit', month: 'short' })
-            };
+        function addCat() {
+            const n = prompt("Emoji + Nombre (ej: 🍎 Comida):");
+            if(n) { cats.push(n); localStorage.setItem('fe_cats', JSON.stringify(cats)); renderCats(); }
+        }
 
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i><span>Sincronizando...</span>`;
-
-            try {
-                await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(expense) });
-                
-                history.push(expense);
-                if(history.length > 30) history.shift();
-                localStorage.setItem('fpro_history', JSON.stringify(history));
-
-                const status = document.getElementById('status');
-                status.classList.replace('opacity-0', 'opacity-100');
-                status.classList.add('-translate-y-2');
-                setTimeout(() => {
-                    status.classList.replace('opacity-100', 'opacity-0');
-                    status.classList.remove('-translate-y-2');
-                }, 3000);
-                
-                document.getElementById('expenseForm').reset();
-                selectCat(categories[0]);
-            } catch (err) {
-                alert("Error al conectar con Google Sheets");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<span>Registrar Gasto</span><i class="fas fa-arrow-right text-sm opacity-50"></i>`;
-            }
-        });
-
-        // Inicio
-        renderCategories();
+        renderCats();
     </script>
 </body>
 </html>
